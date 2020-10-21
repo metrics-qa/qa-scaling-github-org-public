@@ -2,7 +2,7 @@
 
 # Schedule the export
 set -x
-EXPORT_SCHEDULE_MAIN=$(curl -X POST -H "PRIVATE-TOKEN: $GITLAB_METRICS_API_TOKEN" https://gitlab.metrics.ca/api/v4/projects/179/export)
+EXPORT_SCHEDULE_MAIN=$(curl -X POST -H "PRIVATE-TOKEN: $GITLAB_METRICS_API_TOKEN" https://gitlab.metrics.ca/api/v4/projects/232/export)
 set +x
 
 echo $EXPORT_SCHEDULE_MAIN
@@ -14,19 +14,19 @@ if [[ $EXPORT_MESSAGE_MAIN != "202 Accepted" ]]; then
 fi
 
 # gather the status of the export
-EXPORT_STATUS_MAIN=$(curl -H "PRIVATE-TOKEN: $GITLAB_METRICS_API_TOKEN" https://gitlab.metrics.ca/api/v4/projects/179/export | jq -r .export_status)
+EXPORT_STATUS_MAIN=$(curl -H "PRIVATE-TOKEN: $GITLAB_METRICS_API_TOKEN" https://gitlab.metrics.ca/api/v4/projects/232/export | jq -r .export_status)
 echo $EXPORT_STATUS_MAIN
 # wait for the status to be finished
 while [ $EXPORT_STATUS_MAIN != "finished" ] && [ $EXPORT_STATUS_MAIN != "failed" ]; do 
     sleep 10; 
     echo "waiting for export to complete"; 
     # gather the status of the export
-    EXPORT=$(curl -H "PRIVATE-TOKEN: $GITLAB_METRICS_API_TOKEN" https://gitlab.metrics.ca/api/v4/projects/179/export)
+    EXPORT=$(curl -H "PRIVATE-TOKEN: $GITLAB_METRICS_API_TOKEN" https://gitlab.metrics.ca/api/v4/projects/232/export)
     EXPORT_STATUS_MAIN=$(echo $EXPORT | jq -r .export_status)
 done
 
 # download the export tar ball
-curl -H "PRIVATE-TOKEN: $GITLAB_METRICS_API_TOKEN" https://gitlab.metrics.ca/api/v4/projects/179/export/download --output qa-scaling-project.tar.gz
+curl -H "PRIVATE-TOKEN: $GITLAB_METRICS_API_TOKEN" https://gitlab.metrics.ca/api/v4/projects/232/export/download --output qa-scaling-project.tar.gz
 
 ###### SUBMODULE ######
 
