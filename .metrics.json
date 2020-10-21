@@ -1,0 +1,555 @@
+{
+    "builds": {
+        "memory": 0.5,
+        "cpu": 0.18,
+        "list": [
+            {
+                "name": "scaled-build",
+                "image": "qa-toolchain:latest",
+                "cmd": "pwd",
+                "wavesCmd": "pwd"
+            },
+            {
+                "name": "real-simulation-build",
+                "image": "dsim-toolchain:latest",
+                "cmd": "pwd; echo \"build-command\"",
+                "wavesCmd": "pwd; echo \"waves-command\""
+            },
+            {
+                "name": "pre-built-1",
+                "image": "qa-toolchain:latest",
+                "cmd": "pwd",
+                "wavesCmd": "pwd"
+            },
+            {
+                "name": "pre-built-2",
+                "image": "qa-toolchain:latest",
+                "cmd": "pwd",
+                "wavesCmd": "pwd"
+            },
+            {
+                "name": "failed-pre-build",
+                "image": "fakey-toolchain:latest",
+                "cmd": "pwd",
+                "wavesCmd": "pwd"
+            },
+            {
+                "name": "failed-in-build",
+                "image": "qa-toolchain:latest",
+                "cmd": "pwd; exit 1",
+                "wavesCmd": "pwd; exit 1"
+            },
+            {
+                "name": "submod_build",
+                "image": "dsim-toolchain:latest",
+                "cmd": "./submod/hello-world",
+                "wavesCmd": "./submod/hello-world",
+                "isRecursive": "true"
+            }
+        ]
+    },
+    "regressions": [
+        {
+            "name": "fake_metrics_db_regression",
+            "description": "a regression that points to not a file for metrics.db",
+            "metricsPathReplacements": [["/mux-flow/build/repo", ""], ["tests/", "/tests/"]],
+            "tests": {
+                "resultsDir": "/mux-flow/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "real-simulation-build"
+                ],
+                "isPass": [
+                    "Simulation statistics"
+                ],
+                "isFail": [
+                    "RESULT\\[failed\\]"
+                ],
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "list": [
+                    {
+                        "name": "fake_metrics_db_location_test",
+                        "build": "real-simulation-build",
+                        "cmd": "printenv; dsim -no-fcov -no-sva -linebuf -noopt ./tests/instance_capacity/test.sv +define+N_OF_CHILDREN=2 +define+HIER_LEVELS=3 +define+DURATION_IN_ROUNDS=1.0 +define+MSG_ON -sv_seed 2 > /dev/null 2>&1; cp dsim.log /mux-flow/results/dsim.log; cp dsim.env /mux-flow/results/dsim.env; cp simulation.log /mux-flow/results/simulation.log; cp metrics.db /mux-flow/results/metrics.db; cp metrics_history.db /mux-flow/results/metrics_history.db; ",
+                        "wavesCmd": "printenv; dsim -no-fcov -no-sva -linebuf -noopt ./tests/instance_capacity/test.sv +acc+b -waves sim.vcd +define+N_OF_CHILDREN=2 +define+HIER_LEVELS=3 +define+DURATION_IN_ROUNDS=1.0 +define+MSG_ON -sv_seed 2 > /dev/null 2>&1; cp dsim.log /mux-flow/results/dsim.log; cp dsim.env /mux-flow/results/dsim.env; cp simulation.log /mux-flow/results/simulation.log; cp metrics.db /mux-flow/results/metrics.db; cp metrics_history.db /mux-flow/results/metrics_history.db; cp sim.vcd /mux-flow/results/sim.vcd; ",
+                        "wavesFile": "sim.vcd",
+                        "metricsFile": "metrics1.db",
+                        "iterations": 1,
+                        "timeout": "4h",
+                        "logFile": "dsim.log"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "integrated-stress-irl",
+            "description": "a regression with life like qualities",
+            "metricsPathReplacements": [["/mux-flow/build/repo", ""], ["tests/", "/tests/"]],
+            "tests": {
+                "resultsDir": "/mux-flow/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "real-simulation-build",
+                    "scaled-build"
+                ],
+                "isPass": [
+                    "Simulation statistics"
+                ],
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "list": [
+                    {
+                        "name": "large_log_file_test",
+                        "build": "real-simulation-build",
+                        "cmd": "printenv; dsim -no-fcov -no-sva -linebuf -noopt ./tests/instance_capacity/test.sv +define+N_OF_CHILDREN=4 +define+HIER_LEVELS=5 +define+DURATION_IN_ROUNDS=1.0 +define+MSG_ON -sv_seed 2 > /dev/null 2>&1; cp dsim.log /mux-flow/results/dsim.log; cp dsim.env /mux-flow/results/dsim.env; cp simulation.log /mux-flow/results/simulation.log; cp metrics.db /mux-flow/results/metrics.db; cp metrics_history.db /mux-flow/results/metrics_history.db; ",
+                        "wavesCmd": "printenv; dsim -no-fcov -no-sva -linebuf -noopt ./tests/instance_capacity/test.sv +acc+b -waves sim.vcd +define+N_OF_CHILDREN=4 +define+HIER_LEVELS=5 +define+DURATION_IN_ROUNDS=1.0 +define+MSG_ON -sv_seed 2 > /dev/null 2>&1; cp dsim.log /mux-flow/results/dsim.log; cp dsim.env /mux-flow/results/dsim.env; cp simulation.log /mux-flow/results/simulation.log; cp metrics.db /mux-flow/results/metrics.db; cp metrics_history.db /mux-flow/results/metrics_history.db; cp sim.vcd /mux-flow/results/sim.vcd; ",
+                        "wavesFile": "sim.vcd",
+                        "metricsFile": "metrics.db",
+                        "memory": 5,
+                        "cpu": 1.5,
+                        "iterations": 1000,
+                        "logFile": "dsim.log"
+                    },
+                    {
+                        "name": "30M_duration_test",
+                        "build": "scaled-build",
+                        "cmd": "printenv; ./scripts/runTest.py --duration 1800000 --result passed -bank",
+                        "wavesCmd": "printenv; ./scripts/runTest.py --duration 1800000 --result passed -bank",
+                        "wavesFile": "sim.vcd",
+                        "metricsFile": "metrics.db",
+                        "iterations": 2000,
+                        "isPassCmd": "<rootDir>/.metrics/postProcess.py",
+                        "isPassFile": "<rootDir>/testRunResult",
+                        "timestamp": "Run time: (\\d+)",
+                        "timescale": "Simulation time precision is \\d+(\\w+)"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "large-log-regression",
+            "description": "a regression with large log files",
+            "metricsPathReplacements": [["/mux-flow/build/repo", ""], ["tests/", "/tests/"]],
+            "tests": {
+                "resultsDir": "/mux-flow/results",
+                "memory": 5,
+                "cpu": 1.5,
+                "builds": [
+                    "real-simulation-build"
+                ],
+                "iterations": 1,
+                "isPass": [
+                    "Simulation statistics"
+                ],
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "list": [
+                    {
+                        "name": "qa_scaling_project_test",
+                        "build": "real-simulation-build",
+                        "cmd": "printenv; dsim -line-cov -linebuf -noopt ./tests/instance_capacity/test.sv +define+N_OF_CHILDREN=4 +define+HIER_LEVELS=6 +define+DURATION_IN_ROUNDS=1.0 +define+MSG_ON -sv_seed 2 > /dev/null 2>&1; cp dsim.log /mux-flow/results/dsim.log; cp dsim.env /mux-flow/results/dsim.env; cp simulation.log /mux-flow/results/simulation.log; cp metrics.db /mux-flow/results/metrics.db; cp metrics_history.db /mux-flow/results/metrics_history.db; ",
+                        "wavesCmd": "printenv; dsim -line-cov -linebuf -noopt ./tests/instance_capacity/test.sv +acc+b -waves sim.vcd +define+N_OF_CHILDREN=4 +define+HIER_LEVELS=6 +define+DURATION_IN_ROUNDS=1.0 -sv_seed 2 > /dev/null 2>&1; cp dsim.log /mux-flow/results/dsim.log; cp dsim.env /mux-flow/results/dsim.env; cp simulation.log /mux-flow/results/simulation.log; cp metrics.db /mux-flow/results/metrics.db; cp metrics_history.db /mux-flow/results/metrics_history.db; cp sim.vcd /mux-flow/results/sim.vcd; ",
+                        "wavesFile": "sim.vcd",
+                        "metricsFile": "metrics.db",
+                        "logFile": "dsim.log"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "iteration-property-set-to-1-regression",
+            "description": "a regression many iterations of a the same test but all with 'iterations: 1'",
+            "metricsPathReplacements": [["/mux-flow/build/repo", ""], ["tests/", "/tests/"]],            
+            "tests": {
+                "resultsDir": "<rootDir>/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "pre-built-1"
+                ],
+                "isPassCmd": "<rootDir>/.metrics/postProcess.py",
+                "isPassFile": "<rootDir>/testRunResult",
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py --iter 500 --duration 60000 -forceIteration -bank --build pre-built-1",
+                "listFile": "<rootDir>/testList.json"
+            }
+        },
+        {
+            "name": "submodule-regression",
+            "description": "verifying submodules are cloned for build and test",
+            "tests": {
+                "resultsDir": "/mux-flow/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "submod_build"
+                ],
+                "isPass": [
+                    "Hello World"
+                ],
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "list": [
+                    {
+                        "name": "hello_world_test",
+                        "build": "submod_build",
+                        "cmd": "./submod/hello-world",
+                        "wavesCmd": "./submod/hello-world"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "stress-test-10000",
+            "description": "a regression with 10000 tests that run on dsim",
+            "tests": {
+                "resultsDir": "/mux-flow/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "real-simulation-build"
+                ],
+                "iterations": 10000,
+                "isPass": [
+                    "Simulation statistics"
+                ],
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Run time: \\d+ (\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py -c --build real-simulation-build --depth 3 -realSV",
+                "listFile": "<rootDir>/testList.json"
+            }
+        },
+        {
+            "name": "no-tests-generated",
+            "description": "a regression with no tests in the test list",
+            "tests": {
+                "resultsDir": "<rootDir>/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "pre-built-1"
+                ],
+                "isPassCmd": "<rootDir>/.metrics/postProcess.py",
+                "isPassFile": "<rootDir>/testRunResult",
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py --iter 0 --duration 300000 -c -bank --build pre-built-1",
+                "listFile": "<rootDir>/testList.json"
+            }
+        },
+        {
+            "name": "1-test-generated",
+            "description": "a regression with 1 test in the test list",
+            "metricsPathReplacements": [["/mux-flow/build/repo", ""], ["tests/", "/tests/"]],
+            "verbose": true,
+            "tests": {
+                "resultsDir": "/mux-flow/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "pre-built-1"
+                ],
+                "isPass": [
+                    "Simulation statistics"
+                ],
+                "isFail": [
+                    "RESULT\\[failed\\]"
+                ],
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py -realSV --depth 2 --rounds 1.0 --iter 1 --build pre-built-1",
+                "listFile": "<rootDir>/testList.json"
+            }
+        },
+        {
+            "name": "1-test-defined",
+            "description": "a regression with 1 test in the test list",
+            "metricsPathReplacements": [["/mux-flow/build/repo", ""], ["tests/", "/tests/"]],
+            "tests": {
+                "resultsDir": "/mux-flow/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "pre-built-2"
+                ],
+                "isPass": [
+                    "Simulation statistics"
+                ],
+                "isFail": [
+                    "RESULT\\[failed\\]"
+                ],
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "list": [
+                    {
+                        "name": "qa_scaling_project_test",
+                        "build": "pre-built-2",
+                        "cmd": "printenv; dsim -line-cov -linebuf -noopt ./tests/instance_capacity/test.sv +define+N_OF_CHILDREN=2 +define+HIER_LEVELS=1 +define+DURATION_IN_ROUNDS=1.0 -sv_seed 2 -write-sql; cp dsim.log /mux-flow/results/dsim.log; cp dsim.env /mux-flow/results/dsim.env; cp simulation.log /mux-flow/results/simulation.log; cp metrics.db /mux-flow/results/metrics.db; cp metrics_history.db /mux-flow/results/metrics_history.db; ",
+                        "wavesCmd": "printenv; dsim -line-cov -linebuf -noopt ./tests/instance_capacity/test.sv +acc+b -waves sim.vcd +define+N_OF_CHILDREN=2 +define+HIER_LEVELS=1 +define+DURATION_IN_ROUNDS=1.0 -sv_seed 2 -write-sql; cp dsim.log /mux-flow/results/dsim.log; cp dsim.env /mux-flow/results/dsim.env; cp simulation.log /mux-flow/results/simulation.log; cp metrics.db /mux-flow/results/metrics.db; cp metrics_history.db /mux-flow/results/metrics_history.db; cp sim.vcd /mux-flow/results/sim.vcd; ",
+                        "wavesFile": "sim.vcd",
+                        "metricsFile": "metrics.db"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "10-tests-generated",
+            "description": "a regression with 10 generated tests in the test list and post process script",
+            "metricsPathReplacements": [["/mux-flow/build/repo", ""], ["tests/", "/tests/"]],
+            "tests": {
+                "resultsDir": "/mux-flow/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "pre-built-1"
+                ],
+                "isPass": [
+                    "Simulation statistics"
+                ],
+                "isFail": [
+                    "RESULT\\[failed\\]"
+                ],
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py -realSV --depth 2 --rounds 1.0 --iter 10 --build pre-built-1",
+                "listFile": "<rootDir>/testList.json"
+            }
+        },
+        {
+            "name": "10-tests-defined",
+            "description": "a regression with 10 defined tests in the test list and regex pass criteria",
+            "metricsPathReplacements": [["/mux-flow/build/repo", ""], ["tests/", "/tests/"]],
+            "tests": {
+                "resultsDir": "/mux-flow/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "pre-built-2"
+                ],
+                "iterations": 10,
+                "isPass": [
+                    "Simulation statistics"
+                ],
+                "isFail": [
+                    "RESULT\\[failed\\]"
+                ],
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "list": [
+                    {
+                        "name": "qa_scaling_project_test",
+                        "build": "pre-built-2",
+                        "cmd": "printenv; dsim -line-cov -linebuf -noopt ./tests/instance_capacity/test.sv +define+N_OF_CHILDREN=2 +define+HIER_LEVELS=1 +define+DURATION_IN_ROUNDS=1.0 -sv_seed 2 -write-sql; cp dsim.log /mux-flow/results/dsim.log; cp dsim.env /mux-flow/results/dsim.env; cp simulation.log /mux-flow/results/simulation.log; cp metrics.db /mux-flow/results/metrics.db; cp metrics_history.db /mux-flow/results/metrics_history.db; ",
+                        "wavesCmd": "printenv; dsim -line-cov -linebuf -noopt ./tests/instance_capacity/test.sv +acc+b -waves sim.vcd +define+N_OF_CHILDREN=2 +define+HIER_LEVELS=1 +define+DURATION_IN_ROUNDS=1.0 -sv_seed 2 -write-sql; cp dsim.log /mux-flow/results/dsim.log; cp dsim.env /mux-flow/results/dsim.env; cp simulation.log /mux-flow/results/simulation.log; cp metrics.db /mux-flow/results/metrics.db; cp metrics_history.db /mux-flow/results/metrics_history.db; cp sim.vcd /mux-flow/results/sim.vcd; ",
+                        "wavesFile": "sim.vcd",
+                        "metricsFile": "metrics.db"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "10-test-generated-multi-build",
+            "description": "a regression with 10 generated tests in the test list using 2 different builds",
+            "metricsPathReplacements": [["/mux-flow/build/repo", ""], ["tests/", "/tests/"]],
+            "tests": {
+                "resultsDir": "/mux-flow/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "pre-built-1",
+                    "pre-built-2"
+                ],
+                "isPass": [
+                    "Simulation statistics"
+                ],
+                "isFail": [
+                    "RESULT\\[failed\\]"
+                ],
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py  -realSV --depth 2 --rounds 1.0 --iter 5 --build pre-built-1,pre-built-2",
+                "listFile": "<rootDir>/testList.json"
+            }
+        },
+        {
+            "name": "10-dsim-test-generated",
+            "description": "a regression with 10 generated tests that run on dsim",
+            "metricsPathReplacements": [["/mux-flow/build/repo", ""], ["tests/", "/tests/"]],
+            "verbose": true,
+            "tests": {
+                "resultsDir": "/mux-flow/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "real-simulation-build"
+                ],
+                "isPass": [
+                    "Simulation statistics"
+                ],
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Run time: \\d+ (\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py --iter 10 -c --build real-simulation-build --depth 2 -realSV",
+                "listFile": "<rootDir>/testList.json"
+            }
+        },
+        {
+            "name": "1-test-fatality",
+            "description": "a regression with 1 test that has a fatal message in the logs",
+            "verbose": true,
+            "tests": {
+                "resultsDir": "<rootDir>/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "scaled-build"
+                ],
+                "isPassCmd": "<rootDir>/.metrics/postProcess.py",
+                "isPassFile": "<rootDir>/testRunResult",
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py --iter 1 --duration 30000 -bank --result failed",
+                "listFile": "<rootDir>/testList.json"
+            }
+        },
+        {
+            "name": "custom-dsim-test-generated",
+            "description": "a regression with custom generated tests that run on dsim",
+            "metricsPathReplacements": [["/mux-flow/build/repo", ""]],
+            "tests": {
+                "resultsDir": "/mux-flow/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "scaled-build"
+                ],
+                "iterations": 3000,
+                "isPass": [
+                    "Simulation statistics"
+                ],
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Run time: \\d+ (\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py -c --build scaled-build --depth 3 -realSV",
+                "listFile": "<rootDir>/testList.json"
+            }
+        },
+        {
+            "name": "stress-test-3000",
+            "description": "a regression with 3000 tests that run on dsim",
+            "tests": {
+                "resultsDir": "/mux-flow/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "real-simulation-build"
+                ],
+                "iterations": 3000,
+                "isPass": [
+                    "Simulation statistics"
+                ],
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Run time: \\d+ (\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py -c --build real-simulation-build --depth 3 -realSV",
+                "listFile": "<rootDir>/testList.json"
+            }
+        },
+        {
+            "name": "custom-mock-test-generated",
+            "description": "a regression run with custom generated tests that runs mock testRuns",
+            "tests": {
+                "resultsDir": "<rootDir>/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "scaled-build"
+                ],
+                "isPassCmd": "<rootDir>/.metrics/postProcess.py",
+                "isPassFile": "<rootDir>/testRunResult",
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py --iter 2000 --duration 600000 -c -bank --result passed",
+                "listFile": "<rootDir>/testList.json"
+            }
+        },
+        {
+            "name": "3H_long_regression",
+            "description": "a regression run with with a 3H long testRun",
+            "tests": {
+                "resultsDir": "<rootDir>/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "scaled-build"
+                ],
+                "isPassCmd": "<rootDir>/.metrics/postProcess.py",
+                "isPassFile": "<rootDir>/testRunResult",
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py --iter 1 --duration 10800000 -bank --result passed",
+                "listFile": "<rootDir>/testList.json"
+            }
+        },
+        {
+            "name": "pre-build-fail",
+            "description": "a regression with a build that fails before it begins",
+            "tests": {
+                "resultsDir": "<rootDir>/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "failed-pre-build"
+                ],
+                "isPassCmd": "<rootDir>/.metrics/postProcess.py",
+                "isPassFile": "<rootDir>/testRunResult",
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py --iter 1 --duration 60000 -c -bank --build failed-pre-build --result passed",
+                "listFile": "<rootDir>/testList.json"
+            }
+        },
+        {
+            "name": "in-build-fail",
+            "description": "a regression with a build that fails after it begins",
+            "tests": {
+                "resultsDir": "<rootDir>/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "failed-in-build"
+                ],
+                "isPassCmd": "<rootDir>/.metrics/postProcess.py",
+                "isPassFile": "<rootDir>/testRunResult",
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py --iter 1 --duration 60000 -c -bank --build failed-in-build --result passed",
+                "listFile": "<rootDir>/testList.json"
+            }
+        },
+        {
+            "name": "1-test-relative-source",
+            "description": "a regression with 1 test run from a directory out of the repo base",
+            "verbose": true,
+            "tests": {
+                "resultsDir": "/mux-flow/results",
+                "memory": 0.5,
+                "cpu": 0.18,
+                "builds": [
+                    "pre-built-1"
+                ],
+                "isPass": [
+                    "Simulation statistics"
+                ],
+                "isFail": [
+                    "RESULT\\[failed\\]"
+                ],
+                "timestamp": "Run time: (\\d+)",
+                "timescale": "Simulation time precision is \\d+(\\w+)",
+                "listCmd": "<rootDir>/.metrics/generateTestList.py -realSV --depth 2 --rounds 1.0 --iter 1 --build pre-built-1 -runFromTestFolder",
+                "listFile": "<rootDir>/testList.json"
+            }
+        }
+    ]
+}

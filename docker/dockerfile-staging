@@ -1,0 +1,20 @@
+FROM gcr.io/staging-metrics-project/dsim-toolchain:latest
+
+USER 0
+
+RUN apt-get update -y && \
+    apt-get install -y python3-pip && \
+    apt-get install -y python3-yaml  && \  
+    apt-get install -y python3-numpy && \
+    apt-get install -y gettext-base && \
+    pip3 install requests && \
+    pip3 install psutil
+
+# add TLS files
+RUN mkdir /.tls
+ADD $STAGING_TLS_CERT /.tls/tls_cert.pem
+ENV TLS_CERT /.tls/tls_cert.pem
+ADD $STAGING_TLS_KEY /.tls/tls_key.pem
+ENV TLS_KEY /.tls/tls_key.pem
+
+USER packard-runner

@@ -1,0 +1,87 @@
+stages:
+  - export
+  - import
+  - image
+
+export:project:
+  stage: export
+  image:
+    name: gitlab.metrics.ca:5005/time0/time0-deploy/util:1.6
+    entrypoint: [""]
+  script:
+    - ./scripts/export.sh qa-scaling-project
+  artifacts:
+    expire_in: 1 hour
+    paths:
+      - qa-scaling-project.tar.gz
+      - submodule.tar.gz
+  only:
+    refs:
+      - schedules
+    variables: 
+       - $DEPLOY
+  tags: [ docker ]
+
+.template: &import-base
+  stage: import
+  image:
+    name: gitlab.metrics.ca:5005/time0/time0-deploy/util:1.6
+    entrypoint: [""]
+  script: 
+    - ./scripts/import.sh qa-scaling-project
+  tags: [ docker ]
+  dependencies: [ "export:project" ]
+  only:
+    refs:
+      - schedules
+    variables: 
+       - $DEPLOY
+
+.template: &image-base
+  stage: image
+  image: gitlab.metrics.ca:5005/time0/time0-deploy/util:1.6
+  script:
+    - echo $SERVICE_ACCOUNT >> key-file.json
+    - cp ./docker/dockerfile-$SUBDOMAIN ./docker/Dockerfile
+    - docker info
+    - gcloud config set project $GCE_PROJECT
+    - gcloud auth activate-service-account --key-file key-file.json
+    - gcloud auth configure-docker
+    - docker build -t $IMAGE_TAG -f docker/Dockerfile .
+    - docker push $IMAGE_TAG
+    - docker rmi $IMAGE_TAG
+  tags: [ docker ]
+  only:
+    refs:
+      - schedules
+    variables: 
+       - $IMAGE
+
+  
+import:nightly:
+  <<: *import-base
+  variables:
+    API_TOKEN: "$GITLAB_NIGHTLY_API_TOKEN"
+    CLUSTER: "nightly"
+
+import:staging:
+  <<: *import-base
+  variables:
+    API_TOKEN: "$GITLAB_STAGING_API_TOKEN"
+    CLUSTER: "staging"
+
+image:nightly:
+  <<: *image-base
+  variables:
+    GCE_PROJECT: "nightly-metrics-ca"
+    IMAGE_TAG: "gcr.io/nightly-metrics-ca/qa-toolchain:latest"
+    SUBDOMAIN: "nightly"
+    SERVICE_ACCOUNT: $SERVICE_ACCOUNT_NIGHTLY
+
+image:staging:
+  <<: *image-base
+  variables:
+    GCE_PROJECT: "staging-metrics-project"
+    IMAGE_TAG: "gcr.io/staging-metrics-project/qa-toolchain:latest"
+    SUBDOMAIN: "staging"
+    SERVICE_ACCOUNT: $SERVICE_ACCOUNT_STAGING
